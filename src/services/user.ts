@@ -1,13 +1,17 @@
 // src/services/user.ts
-import { Lifetime } from "awilix"
 import {
     UserService as MedusaUserService,
 } from "@medusajs/medusa"
-import { User } from "../models/user"
 import {
     CreateUserInput as MedusaCreateUserInput,
 } from "@medusajs/medusa/dist/types/user"
+import { Lifetime } from "awilix"
+
+
 import StoreRepository from "../repositories/store"
+
+import { User } from "../models/user"
+import StoreService from "./store"
 
 type CreateUserInput = {
     store_id?: string
@@ -21,7 +25,7 @@ class UserService extends MedusaUserService {
     constructor(container, options) {
         // @ts-ignore
         super(...arguments)
-        
+
         this.storeRepository_ = container.storeRepository
 
         try {
@@ -39,9 +43,12 @@ class UserService extends MedusaUserService {
             const storeRepo = this.manager_.withRepository(
                 this.storeRepository_
             )
+            
             let newStore = storeRepo.create()
             newStore = await storeRepo.save(newStore)
             user.store_id = newStore.id
+
+            this.eventBus_.emit(StoreService.Events.CREATED, { id: newStore.id })
         }
 
         return await super.create(user, password)
