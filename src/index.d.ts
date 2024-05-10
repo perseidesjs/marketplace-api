@@ -2,7 +2,6 @@ import type { User } from './models/user'
 import type { Product } from './models/product'
 import type { Store } from './models/store'
 import type { Order } from './models/order'
-import type { Payment } from './models/payment'
 import type { ShippingOption } from './models/shipping-option'
 import type { ShippingProfile } from './models/shipping-profile'
 
@@ -40,5 +39,15 @@ declare module '@medusajs/medusa/dist/models/shipping-profile' {
     interface ShippingProfile {
         store_id?: string
         store?: Store
+    }
+}
+
+declare module '@medusajs/medusa/dist/models/order' {
+    interface Order {
+        store_id?: string
+        store?: Store
+        order_parent_id?: string
+        parent?: Order
+        children?: Order[]
     }
 }
