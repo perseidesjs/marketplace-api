@@ -14,7 +14,7 @@
 <h4 align="center">
   <a href="https://blog.perseides.org">Blog</a> |  
   <a href="https://perseides.org">Website</a> |
-   <a href="https://www.medusajs.com">Medusa</a> |
+   <a href="https://www.medusajs.com">Medusa</a>
 </h4>
 
 <p align="center">
