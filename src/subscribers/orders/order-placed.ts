@@ -120,7 +120,7 @@ export default async function handleOrderPlaced({
 
                 await shippingMethodRepo.save(newShippingMethod)
 
-                totalShippingAmount += shippingMethod.total
+                totalShippingAmount += shippingMethod.price
             }
 
             const childPayment = paymentRepo.create({
@@ -131,14 +131,15 @@ export default async function handleOrderPlaced({
                 cart_id: null,
                 cart: null,
                 id: null,
-                data:null,
             })
 
             await paymentRepo.save(childPayment)
         }
 
         logger.success(orderActivity, `OrderPlacedSubscriber | Order ${data.id} has been split into ${storesWithItems.size} child orders.`)
+
     })
+
 }
 
 export const config: SubscriberConfig = {
