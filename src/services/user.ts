@@ -6,9 +6,8 @@ import {
     CreateUserInput as MedusaCreateUserInput,
 } from "@medusajs/medusa/dist/types/user"
 import { Lifetime } from "awilix"
+import type StoreRepository from "@medusajs/medusa/dist/repositories/store"
 
-
-import StoreRepository from "../repositories/store"
 
 import { User } from "../models/user"
 import StoreService from "./store"

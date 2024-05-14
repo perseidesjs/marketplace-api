@@ -1,6 +1,6 @@
 import { Logger, MedusaContainer } from '@medusajs/medusa'
-import type { StoreRepository } from '../repositories/store'
-import ShippingProfileService from '../services/shipping-profile'
+import type StoreRepository from '@medusajs/medusa/dist/repositories/store'
+import type ShippingProfileService from '../services/shipping-profile'
 
 export default async function (container: MedusaContainer): Promise<void> {
     const shippingProfileService = container.resolve<ShippingProfileService>('shippingProfileService')
