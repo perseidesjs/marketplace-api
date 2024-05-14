@@ -17,7 +17,7 @@ class ShippingProfileService extends MedusaShippingProfileService {
     static LIFE_TIME = Lifetime.TRANSIENT
     protected readonly loggedInUser_: User | null
 
-    constructor(container, options) {
+    constructor(container) {
         // @ts-ignore
         super(...arguments)
 
@@ -28,11 +28,24 @@ class ShippingProfileService extends MedusaShippingProfileService {
         }
     }
 
+    async retrieveDefault(): Promise<ShippingProfile> {
+        if (this.loggedInUser_?.store_id) {
+            return this.shippingProfileRepository_.findOne({
+                where: {
+                    type: ShippingProfileType.CUSTOM,
+                    store_id: this.loggedInUser_.store_id
+                }
+            })
+        }
+
+        return super.retrieveDefault()
+    }
+
     async list(
         selector: ShippingProfileSelector = {},
         config: FindConfig<ShippingProfile> = {}
     ): Promise<ShippingProfile[]> {
-        if (!selector.store_id && this.loggedInUser_?.store_id){
+        if (!selector.store_id && this.loggedInUser_?.store_id) {
             selector.store_id = this.loggedInUser_.store_id
         }
 
@@ -50,7 +63,7 @@ class ShippingProfileService extends MedusaShippingProfileService {
             'metadata',
         ];
 
-        return await super.list(selector, config);
+        return super.list(selector, config);
     }
 
 
@@ -71,7 +84,7 @@ class ShippingProfileService extends MedusaShippingProfileService {
 
             const created = profileRepository.create(toCreate)
 
-            return await profileRepository.save(created)
+            return profileRepository.save(created)
         })
     }
 }
