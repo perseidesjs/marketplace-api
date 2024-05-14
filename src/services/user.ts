@@ -7,7 +7,7 @@ import { User } from "../models/user"
 import {
     CreateUserInput as MedusaCreateUserInput,
 } from "@medusajs/medusa/dist/types/user"
-import StoreRepository from "../repositories/store"
+import type StoreRepository from "@medusajs/medusa/dist/repositories/store"
 
 type CreateUserInput = {
     store_id?: string
