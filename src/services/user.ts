@@ -5,10 +5,10 @@ import {
 import {
     CreateUserInput as MedusaCreateUserInput,
 } from "@medusajs/medusa/dist/types/user"
+import type StoreRepository from "@medusajs/medusa/dist/repositories/store"
 import { Lifetime } from "awilix"
 
 
-import StoreRepository from "../repositories/store"
 
 import { User } from "../models/user"
 import StoreService from "./store"
