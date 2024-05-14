@@ -16,7 +16,7 @@ export default async function handleStoreCreated({
     const promise = logger.activity(`Creating default shipping profile for store ${data.id}`)
     
     await shippingProfileService.createDefaultForStore(data.id).catch(e => {
-        logger.error(e, `Error creating default shipping profile for store ${data.id}`)
+        logger.failure(promise, `Error creating default shipping profile for store ${data.id}`)
         throw e
     })
 
