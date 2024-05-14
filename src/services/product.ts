@@ -1,8 +1,10 @@
 // src/services/product.ts
 
-import type { CreateProductInput as MedusaCreateProductInput } from '@medusajs/medusa/dist/types/product'
+import type { FindProductConfig, CreateProductInput as MedusaCreateProductInput } from '@medusajs/medusa/dist/types/product'
 import { ProductService as MedusaProductService } from '@medusajs/medusa'
 import { Lifetime } from 'awilix'
+import { ProductSelector as MedusaProductSelector } from '@medusajs/medusa/dist/types/product'
+
 
 import type { User } from '../models/user'
 import type { Product } from '../models/product'
@@ -11,6 +13,11 @@ import type { Product } from '../models/product'
 type CreateProductInput = {
     store_id?: string
 } & MedusaCreateProductInput
+
+type ProductSelector = {
+    store_id?: string
+} & MedusaProductSelector
+
 
 class ProductService extends MedusaProductService {
     static LIFE_TIME = Lifetime.TRANSIENT
@@ -26,13 +33,26 @@ class ProductService extends MedusaProductService {
             // avoid errors when backend first runs
         }
     }
+    async listAndCount(selector: ProductSelector, config?: FindProductConfig): Promise<[Product[], number]> {
+        if (!selector.store_id && this.loggedInUser_?.store_id) {
+            selector.store_id = this.loggedInUser_.store_id
+        }
+
+        config.select?.push('store_id')
+
+        config.relations?.push('store')
+
+        const products = await super.listAndCount(selector, config)
+        return products
+    }
 
     async create(productObject: CreateProductInput): Promise<Product> {
         if (!productObject.store_id && this.loggedInUser_?.store_id) {
             productObject.store_id = this.loggedInUser_.store_id
         }
 
-        return await super.create(productObject)
+        const product = await super.create(productObject)
+        return product
     }
 }
 
