@@ -34,6 +34,18 @@ class ProductService extends MedusaProductService {
 
         return await super.create(productObject)
     }
+
+    async listAndCount(selector: ProductSelector, config?: FindProductConfig): Promise<[Product[], number]> {
+        if (!selector.store_id && this.loggedInUser_?.store_id) {
+            selector.store_id = this.loggedInUser_.store_id
+        }
+
+        config.select?.push('store_id')
+
+        config.relations?.push('store')
+
+        return await super.listAndCount(selector, config)
+    }
 }
 
 export default ProductService
