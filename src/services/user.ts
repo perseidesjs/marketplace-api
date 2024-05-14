@@ -5,10 +5,11 @@ import {
 import {
     CreateUserInput as MedusaCreateUserInput,
 } from "@medusajs/medusa/dist/types/user"
+import type StoreRepository from "@medusajs/medusa/dist/repositories/store"
+
 import { Lifetime } from "awilix"
 
 
-import StoreRepository from "../repositories/store"
 
 import { User } from "../models/user"
 import StoreService from "./store"
@@ -22,7 +23,7 @@ class UserService extends MedusaUserService {
     protected readonly loggedInUser_: User | null
     protected readonly storeRepository_: typeof StoreRepository
 
-    constructor(container, options) {
+    constructor(container) {
         // @ts-ignore
         super(...arguments)
 

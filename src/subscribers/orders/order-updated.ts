@@ -5,9 +5,9 @@ import {
     type SubscriberArgs,
     type SubscriberConfig,
 } from '@medusajs/medusa'
+import type OrderRepository from '@medusajs/medusa/dist/repositories/order'
 
 import type { Order } from '../../models/order'
-import { OrderRepository } from '../../repositories/order'
 import OrderService from '../../services/order'
 
 
