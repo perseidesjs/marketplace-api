@@ -49,6 +49,13 @@ class ProductService extends MedusaProductService {
     async create(productObject: CreateProductInput): Promise<Product> {
         if (!productObject.store_id && this.loggedInUser_?.store_id) {
             productObject.store_id = this.loggedInUser_.store_id
+
+            // This will generate a handle for the product based on the title and store_id
+            // e.g. "sunglasses-01HXVYMJF9DW..."
+            const title = productObject.title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '-').toLowerCase()
+            const store_id = this.loggedInUser_.store_id.replace("store_", "")
+
+            productObject.handle = `${title}-${store_id}`
         }
 
         const product = await super.create(productObject)
