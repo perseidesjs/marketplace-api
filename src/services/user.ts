@@ -6,7 +6,6 @@ import {
     CreateUserInput as MedusaCreateUserInput,
 } from "@medusajs/medusa/dist/types/user"
 import type StoreRepository from "@medusajs/medusa/dist/repositories/store"
-
 import { Lifetime } from "awilix"
 
 
@@ -23,7 +22,7 @@ class UserService extends MedusaUserService {
     protected readonly loggedInUser_: User | null
     protected readonly storeRepository_: typeof StoreRepository
 
-    constructor(container) {
+    constructor(container, options) {
         // @ts-ignore
         super(...arguments)
 
@@ -40,19 +39,21 @@ class UserService extends MedusaUserService {
         user: CreateUserInput,
         password: string
     ): Promise<User> {
-        if (!user.store_id) {
-            const storeRepo = this.manager_.withRepository(
-                this.storeRepository_
-            )
+        return await this.atomicPhase_(async (m) => {
+            const storeRepo = m.withRepository(this.storeRepository_)
+
+            if (!user.store_id) {
+                let newStore = storeRepo.create()
+                newStore = await storeRepo.save(newStore)
+                user.store_id = newStore.id
+            }
+
+            const savedUser = await super.create(user, password)
+
+            this.eventBus_.emit(StoreService.Events.CREATED, { id: user.store_id })
             
-            let newStore = storeRepo.create()
-            newStore = await storeRepo.save(newStore)
-            user.store_id = newStore.id
-
-            this.eventBus_.emit(StoreService.Events.CREATED, { id: newStore.id })
-        }
-
-        return await super.create(user, password)
+            return savedUser
+        })
     }
 }
 
