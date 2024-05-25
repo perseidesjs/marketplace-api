@@ -2,6 +2,7 @@ import {
     LineItem,
     Logger,
     OrderService,
+    PaymentStatus,
     ShippingMethod,
     type SubscriberArgs,
     type SubscriberConfig
@@ -134,9 +135,13 @@ export default async function handleOrderPlaced({
             })
 
             await paymentRepo.save(childPayment)
+
         }
 
-        logger.success(orderActivity, `OrderPlacedSubscriber | Order ${data.id} has been split into ${storesWithItems.size} child orders.`)
+        // #3 : Capture the payment for the parent order (it will also capture the child orders)
+        await orderService.withTransaction(m).capturePayment(order.id)
+
+        logger.success(orderActivity, `Order ${data.id} has been split into ${storesWithItems.size} child orders.`)
 
     })
 
