@@ -2,6 +2,14 @@ import type { Product } from './models/product'
 import type { ShippingProfile } from './models/shipping-profile'
 import type { ShippingOption } from './models/shipping-option' 
 import type { Order } from './models/shipping-order' 
+import type { Store } from './models/store'
+
+declare module '@medusajs/medusa/dist/models/store' {
+    interface Store {
+        stripe_account_id?: string
+        stripe_account_enabled: boolean
+    }
+}
 
 declare module '@medusajs/medusa/dist/models/product' {
     interface Product {

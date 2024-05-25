@@ -45,7 +45,7 @@ export default async function handleOrderUpdated({
                 parentOrder.fulfillment_status = (status === 'completed'
                     ? FulfillmentStatus.SHIPPED
                     : status) as unknown as FulfillmentStatus
-                parentOrder.payment_status = status as unknown as PaymentStatus
+                parentOrder.payment_status = (status === 'completed') ? PaymentStatus.CAPTURED : status as unknown as PaymentStatus
                 await orderRepo.save(parentOrder)
         }
     }

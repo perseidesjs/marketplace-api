@@ -19,7 +19,7 @@ switch (process.env.NODE_ENV) {
 
 try {
   dotenv.config({ path: process.cwd() + "/" + ENV_FILE_NAME });
-} catch (e) {}
+} catch (e) { }
 
 // CORS when consuming Medusa from admin
 const ADMIN_CORS =
@@ -32,6 +32,8 @@ const DATABASE_URL =
   process.env.DATABASE_URL || "postgres://localhost/medusa-starter-default";
 
 const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
+
+const SERVER_URL = process.env.SERVER_URL || "https://ubuntu-zvw-370.hagrid.link";
 
 const plugins = [
   `medusa-fulfillment-manual`,
@@ -52,6 +54,13 @@ const plugins = [
       },
     },
   },
+  {
+    resolve: `medusa-payment-stripe`,
+    options: {
+      api_key: process.env.STRIPE_SECRET_KEY,
+      capture: true,
+    },
+  }
 ];
 
 const modules = {
@@ -76,6 +85,10 @@ const projectConfig = {
   store_cors: STORE_CORS,
   database_url: DATABASE_URL,
   admin_cors: ADMIN_CORS,
+  server_url: SERVER_URL,
+  features: {
+    sales_channels: false
+  }
   // Uncomment the following lines to enable REDIS
   // redis_url: REDIS_URL
 };

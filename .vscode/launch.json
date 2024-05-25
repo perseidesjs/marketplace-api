@@ -1,0 +1,12 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node-terminal",
+            "name": "Debug | API",
+            "request": "launch",
+            "command": "yarn dev", // if you do not use Yarn you can replace by `npm run dev` for example
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}

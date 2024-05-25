@@ -2,6 +2,7 @@ import {
     LineItem,
     Logger,
     OrderService,
+    PaymentStatus,
     ShippingMethod,
     type SubscriberArgs,
     type SubscriberConfig
@@ -39,7 +40,7 @@ export default async function handleOrderPlaced({
 
         const orderActivity = logger.activity(`Splitting order ${data.id} into child orders...`)
 
-        const order = await orderService.retrieve(data.id, {
+        const order = await orderService.retrieveWithTotals(data.id, {
             relations: ['items', 'items.variant', 'items.variant.prices', 'cart', 'payments', 'shipping_methods'],
         })
 
@@ -98,7 +99,7 @@ export default async function handleOrderPlaced({
 
 
                 // We compute the total order amount for the child order
-                totalItemsAmount += item.total ?? item.unit_price * item.quantity
+                totalItemsAmount += item.total
             }
 
             // #2.3 : Create a new shipping method for each child order with a matching shipping option that is in the same store
@@ -120,7 +121,7 @@ export default async function handleOrderPlaced({
 
                 await shippingMethodRepo.save(newShippingMethod)
 
-                totalShippingAmount += shippingMethod.price
+                totalShippingAmount += shippingMethod.total
             }
 
             const childPayment = paymentRepo.create({
@@ -134,9 +135,13 @@ export default async function handleOrderPlaced({
             })
 
             await paymentRepo.save(childPayment)
+
         }
 
-        logger.success(orderActivity, `OrderPlacedSubscriber | Order ${data.id} has been split into ${storesWithItems.size} child orders.`)
+        // #3 : Capture the payment for the parent order (it will also capture the child orders)
+        await orderService.withTransaction(m).capturePayment(order.id)
+
+        logger.success(orderActivity, `Order ${data.id} has been split into ${storesWithItems.size} child orders.`)
 
     })
 

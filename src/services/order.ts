@@ -1,9 +1,9 @@
-import { FindConfig, OrderService as MedusaOrderService, Order, PaymentStatus, Selector } from '@medusajs/medusa'
+import { FindConfig, OrderService as MedusaOrderService, Order, PaymentStatus, Refund, Selector } from '@medusajs/medusa'
 import { Lifetime } from 'awilix'
 import { MedusaError } from 'medusa-core-utils'
 
-import type { User } from '../models/user'
 import PaymentRepository from '@medusajs/medusa/dist/repositories/payment'
+import type { User } from '../models/user'
 
 type OrderSelector = {
     store_id?: string
@@ -56,10 +56,52 @@ class OrderService extends MedusaOrderService {
         const order = await super.retrieve(orderId, config)
 
         if (order.store?.id && this.loggedInUser_?.store_id && order.store.id !== this.loggedInUser_.store_id) {
-            throw new MedusaError(MedusaError.Types.NOT_FOUND, 'Product does not exist')
+            throw new MedusaError(
+                MedusaError.Types.NOT_FOUND,
+                `Order with id ${orderId} was not found`
+            )
         }
 
         return order
+    }
+
+    /**
+     * When a parent payment is captured, we capture the parent order payment but also every child order payment
+     */
+    async capturePayment(orderId: string): Promise<Order> {
+        const order = await this.retrieveWithTotals(orderId, { relations: ['payments', 'children'] })
+
+        if (order.order_parent_id) {
+            throw new MedusaError(
+                MedusaError.Types.NOT_ALLOWED,
+                `Order with id ${orderId} is a child order and cannot be captured.`
+            )
+        }
+
+        return await this.atomicPhase_(async (m) => {
+            const orderRepo = m.withRepository(this.orderRepository_)
+            const paymentRepo = m.withRepository(PaymentRepository)
+
+            for (const child of order.children) {
+                const childOrder = await orderRepo.findOne({
+                    where: {
+                        id: child.id
+                    },
+                    relations: ['payments']
+                })
+
+                if (!childOrder.payments.at(0).captured_at) {
+                    await paymentRepo.update(childOrder.payments.at(0).id, {
+                        captured_at: new Date()
+                    })
+                    await orderRepo.update(child.id, {
+                        payment_status: PaymentStatus.CAPTURED
+                    })
+                }
+            }
+
+            return await super.capturePayment(order.id)
+        })
     }
 
     async createRefund(orderId: string, refundAmount: number, reason: string, note?: string, config?: { no_notification?: boolean }): Promise<Order> {
@@ -70,26 +112,40 @@ class OrderService extends MedusaOrderService {
             return await super.createRefund(orderId, refundAmount, reason, note, config)
         }
 
-        // Means the refund have occured on a child order, so we need to refund from the parent order and compute the new child order amount
-        return this.atomicPhase_(async (m) => {
-            const paymentRepo = m.withRepository(PaymentRepository)
+        // Means the refund have occured on a child order,
+        // so we need to refund from the parent order and compute the new child order amount
+        return await this.atomicPhase_(async (m) => {
             const orderRepo = m.withRepository(this.orderRepository_)
+            const refundRepo = m.getRepository(Refund)
 
+            // If the refund amount is greater than the order amount, we can't refund
             if (refundAmount > order.refundable_amount) {
                 throw new MedusaError(MedusaError.Types.INVALID_ARGUMENT, 'Refund amount is greater than the order amount')
             }
 
+            // We refund from the parent order
             let parentOrder = await this.retrieve(order.order_parent_id)
-            parentOrder = await super.createRefund(order.order_parent_id, refundAmount, reason, note, config)
+            parentOrder = await super.createRefund(order.order_parent_id, refundAmount, reason, `${note}\n\nRefund from child order : ${order.id}`, config)
 
-            let childOrderPayment = order.payments?.at(0)
 
-            childOrderPayment = await paymentRepo.save({
-                ...childOrderPayment,
-                amount_refunded: childOrderPayment.amount_refunded + refundAmount
+            // We create a refund for the child order, for future computation (refundable_amount)
+            const refund = refundRepo.create({
+                order_id: order.id,
+                amount: refundAmount,
+                reason,
+                note: `${note}\n\nRefund from child order : ${order.id}`,
+                payment_id: order.payments?.at(0)?.id
             })
+            await refundRepo.save(refund)
 
-            const isFullyRefunded = childOrderPayment.amount_refunded === childOrderPayment.amount
+            // We check if the child order payment is fully refunded
+            // If it is, we can set the payment status to REFUNDED
+            // Otherwise, we set the payment status to PARTIALLY_REFUNDED
+            const childOrderPayment = order.payments?.at(0)
+
+            const amountRefunded = childOrderPayment.amount_refunded + refundAmount
+
+            const isFullyRefunded = amountRefunded === childOrderPayment.amount
 
             await orderRepo.update(order.id, {
                 payment_status: isFullyRefunded ? PaymentStatus.REFUNDED : PaymentStatus.PARTIALLY_REFUNDED

@@ -1,5 +1,5 @@
 // src/models/store.ts
-import { Entity, OneToMany } from 'typeorm'
+import { Column, Entity, OneToMany } from 'typeorm'
 
 import { Store as MedusaStore } from '@medusajs/medusa'
 
@@ -25,4 +25,10 @@ export class Store extends MedusaStore {
 
     @OneToMany(() => Order, (order) => order.store)
     orders?: Order[]
+
+    @Column({ nullable: true })
+    stripe_account_id?: string
+
+    @Column({ default: false})
+    stripe_account_enabled: boolean
 }
