@@ -42,8 +42,13 @@ class ProductService extends MedusaProductService {
 
         config.relations?.push('store')
 
-        const products = await super.listAndCount(selector, config)
-        return products
+        const [products, count] = await super.listAndCount(selector, config)
+
+        if (!this.loggedInUser_) {
+            return [products.filter((p) => p.store.stripe_account_enabled), count]
+        }
+
+        return [products, count]
     }
 
     async create(productObject: CreateProductInput): Promise<Product> {
