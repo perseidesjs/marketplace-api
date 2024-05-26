@@ -98,4 +98,7 @@ module.exports = {
   projectConfig,
   plugins,
   modules,
+  featureFlags: {
+    sales_channels: false
+  },
 };
