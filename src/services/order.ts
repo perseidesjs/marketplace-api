@@ -1,8 +1,9 @@
-import { FindConfig, OrderService as MedusaOrderService, Order, Selector } from '@medusajs/medusa'
+import { FindConfig, OrderService as MedusaOrderService, Selector } from '@medusajs/medusa'
 import { Lifetime } from 'awilix'
 import { MedusaError } from 'medusa-core-utils'
 
 import type { User } from '../models/user'
+import type { Order } from '../models/order'
 
 type OrderSelector = {
     store_id?: string
@@ -13,7 +14,7 @@ class OrderService extends MedusaOrderService {
 
     protected readonly loggedInUser_: User | null
 
-    constructor(container, options) {
+    constructor(container) {
         // @ts-ignore
         super(...arguments)
 
@@ -55,7 +56,7 @@ class OrderService extends MedusaOrderService {
         const order = await super.retrieve(orderId, config)
 
         if (order.store?.id && this.loggedInUser_?.store_id && order.store.id !== this.loggedInUser_.store_id) {
-            throw new MedusaError(MedusaError.Types.NOT_FOUND, 'Product does not exist')
+            throw new MedusaError(MedusaError.Types.NOT_FOUND, 'Order does not exist')
         }
 
         return order
