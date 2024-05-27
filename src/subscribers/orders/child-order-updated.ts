@@ -1,6 +1,7 @@
 import {
     FulfillmentStatus,
     Logger,
+    MedusaContainer,
     OrderStatus,
     PaymentStatus,
     type SubscriberArgs,
@@ -9,6 +10,7 @@ import {
 
 import type { Order } from '../../models/order'
 import OrderService from '../../services/order'
+import StripeConnectService from 'src/services/stripe-connect'
 
 export default async function handleOrderUpdated({
     data,
@@ -27,14 +29,12 @@ export default async function handleOrderUpdated({
     }
 
     const updateActivity = logger.activity(`Updating child order statuses for the parent order ${order.order_parent_id}...`)
-    const parentOrder = await orderService.retrieve(order.order_parent_id, {
-        relations: ['children'],
-    }).catch((e) => {
-        logger.error(updateActivity, `Error retrieving parent order ${order.order_parent_id}: ${e.message}`)
-        throw e
+    await updateStatusOfChildren({
+        container,
+        parentOrderId: order.order_parent_id,
+        updateActivity,
+        logger
     })
-
-    await updateStatusOfChildren(parentOrder, orderService)
     logger.success(updateActivity, `Child order statuses updated for the parent order ${order.order_parent_id}.`)
 }
 
@@ -42,14 +42,34 @@ export default async function handleOrderUpdated({
  * This function is executed when a child order is updated.
  * It checks if the child order has a payment status of "captured" and a fulfillment status of "shipped".
  * If both conditions are met, it updates the child order's status to "complete", allowing a parent order to be marked as "complete" too.
+ * But we also create a Stripe transfer for the store.
  */
-async function updateStatusOfChildren(order: Order, orderService: OrderService) {
-    if (!order.children) {
+type Options = {
+    container: MedusaContainer,
+    parentOrderId: string,
+    updateActivity: void,
+    logger: Logger
+}
+async function updateStatusOfChildren({
+    container,
+    parentOrderId,
+    logger,
+    updateActivity
+}: Options) {
+
+    const orderService = container.resolve<OrderService>('orderService')
+    const stripeConnectService = container.resolve<StripeConnectService>('stripeConnectService')
+
+    const parentOrder = await orderService.retrieve(parentOrderId, {
+        relations: ['children'],
+    })
+
+    if (!parentOrder.children) {
         return
     }
 
-    const ordersToComplete = order.children
-        .filter((child) => child.payment_status === PaymentStatus.CAPTURED)
+    const ordersToComplete = parentOrder.children
+        .filter((child) => child.payment_status === PaymentStatus.CAPTURED || child.payment_status === PaymentStatus.PARTIALLY_REFUNDED || child.payment_status === PaymentStatus.REFUNDED)
         .filter((child) => child.fulfillment_status === FulfillmentStatus.SHIPPED)
         .filter(
             (child) =>
@@ -64,6 +84,24 @@ async function updateStatusOfChildren(order: Order, orderService: OrderService) 
 
     for (const order of ordersToComplete) {
         await orderService.completeOrder(order.id)
+
+        const childOrder = await orderService.retrieveWithTotals(order.id, {
+            relations: ['store']
+        })
+
+
+        await stripeConnectService.createTransfer({
+            amount: childOrder.total - childOrder.refunded_total,
+            currency: childOrder.currency_code,
+            destination: childOrder.store.stripe_account_id,
+            metadata: {
+                orderId: childOrder.id,
+                orderNumber: childOrder.display_id,
+            },
+        }).catch((e) => {
+            logger.failure(updateActivity, `An error has occured while creating the Stripe transfer for order ${order.id}.`)
+            throw e
+        })
     }
 }
 
