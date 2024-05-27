@@ -47,7 +47,18 @@ class ShippingOptionService extends MedusaShippingOptionService {
 
         config.relations?.push('store')
 
-        return await super.list(selector, config)
+        const shippingOptions = await super.list(selector, config)
+
+        if (!this.loggedInUser_) {
+            const filteredShippingOptions = shippingOptions.filter((p) => p.store.stripe_account_enabled)
+            const withoutSenstiveFields = filteredShippingOptions.map((p) => {
+                const { id, name } = p.store
+                return { ...p, store: { id, name } }
+            })
+            return withoutSenstiveFields as ShippingOption[]
+        }
+
+        return shippingOptions
     }
 
     async listAndCount(
@@ -62,7 +73,18 @@ class ShippingOptionService extends MedusaShippingOptionService {
 
         config.relations?.push('store')
 
-        return await super.listAndCount(selector, config)
+        const [shippingOptions, count] = await super.listAndCount(selector, config)
+
+        if (!this.loggedInUser_) {
+            const filteredShippingOptions = shippingOptions.filter((p) => p.store.stripe_account_enabled)
+            const withoutSenstiveFields = filteredShippingOptions.map((p) => {
+                const { id, name } = p.store
+                return { ...p, store: { id, name } }
+            })
+            return [withoutSenstiveFields as ShippingOption[], count]
+        }
+
+        return [shippingOptions, count]
     }
 
 

@@ -33,6 +33,8 @@ class ProductService extends MedusaProductService {
             // avoid errors when backend first runs
         }
     }
+
+
     async listAndCount(selector: ProductSelector, config?: FindProductConfig): Promise<[Product[], number]> {
         if (!selector.store_id && this.loggedInUser_?.store_id) {
             selector.store_id = this.loggedInUser_.store_id
@@ -45,7 +47,12 @@ class ProductService extends MedusaProductService {
         const [products, count] = await super.listAndCount(selector, config)
 
         if (!this.loggedInUser_) {
-            return [products.filter((p) => p.store.stripe_account_enabled), count]
+            const filteredProducts = products.filter((p) => p.store.stripe_account_enabled)
+            const withoutSenstiveFields = filteredProducts.map((p) => {
+                const { id, name } = p.store
+                return { ...p, store: { id, name } }
+            })
+            return [withoutSenstiveFields as Product[], count]
         }
 
         return [products, count]
