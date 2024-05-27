@@ -1,8 +1,10 @@
-import { FindConfig, OrderService as MedusaOrderService, Order, PaymentStatus, Refund, Selector } from '@medusajs/medusa'
+import { FindConfig, OrderService as MedusaOrderService,  PaymentStatus, Refund, Selector } from '@medusajs/medusa'
 import { Lifetime } from 'awilix'
 import { MedusaError } from 'medusa-core-utils'
 
 import PaymentRepository from '@medusajs/medusa/dist/repositories/payment'
+
+import type { Order } from '../models/order'
 import type { User } from '../models/user'
 
 type OrderSelector = {
