@@ -56,7 +56,10 @@ class OrderService extends MedusaOrderService {
         const order = await super.retrieve(orderId, config)
 
         if (order.store?.id && this.loggedInUser_?.store_id && order.store.id !== this.loggedInUser_.store_id) {
-            throw new MedusaError(MedusaError.Types.NOT_FOUND, 'Order does not exist')
+            throw new MedusaError(
+                MedusaError.Types.NOT_FOUND,
+                `Order with id ${orderId} was not found`
+            )
         }
 
         return order
