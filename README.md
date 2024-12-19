@@ -17,6 +17,10 @@
    <a href="https://www.medusajs.com">Medusa</a>
 </h4>
 
+> [!IMPORTANT]
+> **This repo has been archived and only concerns version 1.x of Medusa**.
+> **If you still want to apply it to your project, please follow the blog ["here"](https://blog.perseides.org/marketplace-lets-follow-the-recipe)**
+
 <p align="center">
   Initial repository for the perseides / marketplace series of blog posts.
 </p>
